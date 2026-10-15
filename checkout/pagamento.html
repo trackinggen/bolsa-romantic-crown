@@ -1038,100 +1038,59 @@
 })();
 </script>
 <script>
-(function(){try{
-  var DFLT_IMG='/site/images/bolsa/bolsa-1.webp';
-  var SEL=[];
-  try{SEL=JSON.parse(localStorage.getItem('lvSel_pote')||'[]');}catch(e){}
-  if(!Array.isArray(SEL)||!SEL.length){
-    var c=localStorage.getItem('corSelecionada')||'';
-    if(!c) return;
-    var m=c.match(/\(([^)]+)\)/);
-    var cor=(m?m[1]:c).trim();
-    var img=localStorage.getItem('corImagem')||DFLT_IMG;
-    var pu=parseFloat(localStorage.getItem('precoUnit')||'49.9')||49.9;
-    SEL=cor.split(' + ').map(function(part){
-      var mm=part.trim().match(/^(.+?)\s*x(\d+)$/);
-      return {l:mm?mm[1]:part.trim(), q:mm?parseInt(mm[2],10):1, p:pu, i:img};
-    });
-  }
-  SEL=SEL.filter(function(s){return s && s.q>0;});
-  if(!SEL.length) return;
-  var BASE=SEL.map(function(s){return {l:s.l,q:s.q,p:s.p||49.9,i:s.i};});
-  var baseKits=BASE.reduce(function(a,s){return a+s.q;},0);
-  var comboSum=BASE.reduce(function(a,s){return a+s.q*(s.p||49.9);},0);
-  function setSpans(n){
-    // Apenas o contador do stepper. O badge do carrinho e' controlado pelo reconciliador.
-    document.querySelectorAll('.border-neutral-200 > span').forEach(function(s){
-      if(/^\d+$/.test((s.textContent||'').trim())) s.textContent=String(n);
-    });
-  }
-  function combos(){
-    var el=document.querySelector('.border-neutral-200 > span');
-    var t=el?(el.textContent||'').trim():'';
-    var n=/^\d+$/.test(t)?parseInt(t,10):1;
-    return n>0?n:1;
-  }
-  function persist(m){
-    var cur=BASE.map(function(s){return {l:s.l,q:s.q*m,p:s.p,i:s.i};});
-    var kits=baseKits*m;
-    var nome=cur.length===1&&cur[0].q===1
-      ?'Bolsa Feminina Transversal'
-      :'Bolsa Feminina Transversal';
+(function(){
+  var colors={
+    Preto:'/site/images/bolsa/bolsa-1.webp',
+    Branco:'/site/images/bolsa/bolsa-branco.jpg',
+    Marrom:'/site/images/bolsa/bolsa-marrom.jpg'
+  };
+  function getColor(){
     try{
-      localStorage.setItem('corSelecionada',nome);
-      localStorage.setItem('corImagem',(cur[0]&&cur[0].i)||DFLT_IMG);
-      localStorage.setItem('qtdSelecionada',String(kits));
-      // subtotal da pagina = precoUnit (valor do combo) * quantidade de combos
-      localStorage.setItem('precoUnit',String(Math.round(comboSum*100)/100));
-      localStorage.setItem('lvSel_pote',JSON.stringify(cur));
+      var fromUrl=new URLSearchParams(location.search).get('cor');
+      if(colors[fromUrl]) return fromUrl;
+      var stored=localStorage.getItem('lvBolsaColor');
+      if(colors[stored]) return stored;
     }catch(e){}
-    return cur;
+    return 'Preto';
   }
-  var busy=false, lastKey='';
   function apply(){
-    if(busy) return;
-    busy=true;
+    var color=getColor();
+    var image=colors[color];
+    var title='Bolsa Feminina Transversal - '+color;
     try{
-      var m=combos();
-      setSpans(m);
-      var cur=persist(m);
-      var total=baseKits*m;
-      var cor=cur.map(function(s){return s.l+(s.q>1?' x'+s.q:'');}).join(' + ');
-      var img=(cur[0]&&cur[0].i)||DFLT_IMG;
-      var titulo='Bolsa Feminina Transversal';
-      var sub='1 luva · 1 lançador · Alça ajustável';
-      document.querySelectorAll('p,span,h3,div').forEach(function(el){
-        if(el.children.length!==0) return;
-        var t=(el.textContent||'').trim();
-        var novo=null;
-        if(/^Bolsa Feminina Transversal/i.test(t)) novo=titulo;
-        else if(/Garantia 2 anos$/i.test(t)) novo=sub;
-        if(novo && t!==novo) el.textContent=novo;
-      });
-      document.querySelectorAll('img[alt="Produto"],img[alt^="Bolsa Feminina Transversal"]').forEach(function(im){
-        if(im.getAttribute('src')!==img){ im.src=img; im.style.objectFit='contain'; im.style.background='#fff'; }
-        if(im.alt!==titulo) im.alt=titulo;
-      });
-      lastKey=m+'|'+cor;
-    }finally{
-      setTimeout(function(){busy=false;},0);
-    }
+      localStorage.setItem('lvBolsaColor',color);
+      localStorage.setItem('corSelecionada',color);
+      localStorage.setItem('corImagem',image);
+      localStorage.setItem('precoUnit','34.99');
+      localStorage.setItem('produtoComprado',JSON.stringify({
+        nome:title,cor:color,img:image,
+        qtd:parseInt(localStorage.getItem('qtdSelecionada')||'1',10)||1,
+        de:'R$ 79,99'
+      }));
+    }catch(e){}
+    document.querySelectorAll('p,span,h3,div').forEach(function(el){
+      if(el.children.length) return;
+      var text=(el.textContent||'').trim();
+      if(/^Bolsa Feminina Transversal(?:\\s*-\\s*(?:Preto|Branco|Marrom))?$/i.test(text)) el.textContent=title;
+      if(/^Garantia 2 anos$/i.test(text)) el.textContent='Bolsa com alça ajustável';
+    });
+    document.querySelectorAll('img[alt="Produto"],img[alt^="Bolsa Feminina Transversal"]').forEach(function(img){
+      if(img.getAttribute('src')!==image) img.setAttribute('src',image);
+      img.alt=title;
+      img.style.objectFit='contain';
+      img.style.background='#fff';
+    });
   }
-  apply();setTimeout(apply,300);setTimeout(apply,1000);setTimeout(apply,2200);
-  setInterval(apply,1500);
-  document.addEventListener('click',function(){ setTimeout(apply,60); setTimeout(apply,300); },true);
-
-}catch(e){}})();
+  apply();
+  setTimeout(apply,250);
+  setTimeout(apply,900);
+  window.addEventListener('pageshow',apply);
+  document.addEventListener('click',function(){setTimeout(apply,80);},true);
+})();
 </script><script src="/checkout/js/utm.js"></script><script src="/checkout/js/support-widget.js" defer></script><script>(function(){var M=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];function f(d){return d.getDate()}
 var RANGES={"PAC - FRETE GRÁTIS":[5,7],"PAC":[5,7],"Frete Grátis":[5,7],"JADLOG":[2,3],"SEDEX 12":[1,2]};
 window.__lvSetEta=function(name){var r=RANGES[name]||RANGES["Frete Grátis"];var n=new Date(),a=new Date(n.getTime()+r[0]*864e5),b=new Date(n.getTime()+r[1]*864e5);var t=a.getTime()===b.getTime()?"no dia "+f(a)+" de "+M[a.getMonth()]:(a.getMonth()===b.getMonth()?f(a)+" e "+f(b)+" de "+M[b.getMonth()]:f(a)+" de "+M[a.getMonth()]+" e "+f(b)+" de "+M[b.getMonth()]);document.querySelectorAll("[data-eta]").forEach(function(e){if(e.textContent!==t)e.textContent=t});};
-window.__lvSetEta("Frete Grátis");})();</script><script>(function(){try{
-var cor='';
-var img=localStorage.getItem('corImagem')||'/site/images/bolsa/bolsa-1.webp';
-var q=parseInt(localStorage.getItem('qtdSelecionada')||'1',10)||1;
-localStorage.setItem('produtoComprado',JSON.stringify({nome:'Bolsa Feminina Transversal',cor:cor,img:img,qtd:q,de:'R$ 69,90'}));
-}catch(e){}})();</script><script src="/checkout/js/restaurar-sessao.js" defer></script>
-<script>(function(){try{localStorage.setItem('precoUnit','34.99');localStorage.setItem('qtdSelecionada','1');localStorage.setItem('lvSel_pote','[]');localStorage.removeItem('corSelecionada');localStorage.removeItem('corImagem');}catch(e){}})();</script><script>(function(){function boot(){var p=new URLSearchParams(location.search),c=p.get('cor')||localStorage.getItem('lvBolsaColor')||'Preto',img={Preto:'/site/images/bolsa/bolsa-1.webp',Branco:'/site/images/bolsa/bolsa-2.jpg',Marrom:'/site/images/bolsa/bolsa-3.jpg'}[c]||'/site/images/bolsa/bolsa-1.webp';document.querySelectorAll('img[src*="/site/images/bolsa/"]').forEach(function(e){if(!/romantic-crown-logo/.test(e.src))e.src=img;});document.querySelectorAll('p,span,div').forEach(function(e){if(e.children.length===0&&e.textContent.trim()==='Preto')e.textContent=c;});}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();})();</script></body></html>
+window.__lvSetEta("Frete Grátis");})();</script><script src="/checkout/js/restaurar-sessao.js" defer></script></body></html>
 <!-- Reconciliador de pedido: fonte única de verdade (qtd + frete + ofertas) -->
 <script>
 (function(){
