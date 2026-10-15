@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/avem.test.mjs tests/payment-flow.test.mjs"
+  }
+}

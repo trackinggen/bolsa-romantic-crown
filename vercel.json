@@ -5,6 +5,14 @@
   "trailingSlash": true,
   "rewrites": [
     {
+      "source": "/pedido-confirmado",
+      "destination": "/checkout/confirmacao.html"
+    },
+    {
+      "source": "/pedido-confirmado/",
+      "destination": "/checkout/confirmacao.html"
+    },
+    {
       "source": "/",
       "destination": "/site/site.html"
     },

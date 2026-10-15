@@ -581,7 +581,7 @@
   var pollTimer=null;
   function startPolling(txId){
     if(pollTimer) clearInterval(pollTimer);
-    try{ localStorage.setItem('lastPixTx', txId||''); localStorage.setItem('lastPixTxAt', String(Date.now())); localStorage.setItem('lvPixNext','/upsell1'); }catch(e){}
+    try{ localStorage.setItem('lastPixTx', txId||''); localStorage.setItem('lastPixTxAt', String(Date.now())); localStorage.setItem('lvPixNext','/pedido-confirmado'); }catch(e){}
     var redirected=false;
     function checkOnce(){
       if(redirected) return;
@@ -592,19 +592,11 @@
           redirected=true;
           if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
           var _amt=getAmount();
-          // Mesmo orderId enviado à UTMify -> eventID do Pixel (dedup) e uma única vez.
+          // Identificador da transação aprovada para a conversão já existente.
           var _order=null; try{ _order=localStorage.getItem('lastPixOrder'); }catch(e){}
           var _eid=_order||txId||String(Date.now());
           try{ if(window._lvGAds) window._lvGAds(_eid,_amt); }catch(e){}
-          try{ localStorage.setItem('pixPaid_'+txId,'1'); localStorage.removeItem('lv_pix_cache'); }catch(e){}
-          // Analytics: funnel step — confirm redirect to upsell2
-          try{
-            var _payload={txId:txId,status:'paid',amount:_amt,to:'/upsell1',ts:Date.now()};
-            if(window.dataLayer) window.dataLayer.push({event:'upsell_redirect',pix_tx_id:txId,pix_status:'paid',pix_amount:_amt,destination:'/upsell1'});
-            navigator.sendBeacon && navigator.sendBeacon('/api/public/analytics/upsell-redirect', new Blob([JSON.stringify(_payload)],{type:'application/json'}));
-            try{ localStorage.setItem('upsellRedirect_'+txId, JSON.stringify(_payload)); }catch(e){}
-            console.log('[funnel] upsell_redirect', _payload);
-          }catch(e){}
+          try{ localStorage.setItem('pixPaid_'+txId,'1'); localStorage.removeItem('lv_pix_cache'); sessionStorage.removeItem('lv_avem_request'); }catch(e){}
           // Tela de sucesso + redirecionamento automático
           try{
             if(navigator.vibrate) navigator.vibrate([120,60,120]);
@@ -612,13 +604,13 @@
             ov.style.cssText='position:fixed;inset:0;z-index:99999;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-family:inherit;padding:24px;text-align:center';
             ov.innerHTML='<div style="width:72px;height:72px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 30px rgba(16,185,129,.4)"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>'
               +'<div style="font-size:22px;font-weight:800;color:#111">Pagamento aprovado!</div>'
-              +'<div style="font-size:14px;color:#666;max-width:300px">Seu pedido foi confirmado. Preparando uma condição especial para você...</div>'
+              +'<div style="font-size:14px;color:#666;max-width:300px">Seu pagamento foi recebido. Abrindo a confirmação do pedido...</div>'
               +'<div style="width:36px;height:36px;border:3px solid #e5e5e5;border-top-color:#10b981;border-radius:50%;animation:lvspin 0.8s linear infinite"></div>'
               +'<style>@keyframes lvspin{to{transform:rotate(360deg)}}</style>';
             document.body.appendChild(ov);
           }catch(e){}
           setTimeout(function(){
-            if(window.lvGo){window.lvGo('/upsell1');}else{window.top.location.href='/upsell1';}
+            if(window.lvGo){window.lvGo('/pedido-confirmado');}else{window.top.location.href='/pedido-confirmado';}
           }, 1400);
         })
         .catch(function(){});
@@ -651,7 +643,7 @@
   try{
     var _prevTx=localStorage.getItem('lastPixTx');
     var _cache=null; try{ _cache=JSON.parse(localStorage.getItem('lv_pix_cache')||'null'); }catch(e){}
-    var _fresh=!!(_cache && _cache.cp && (Date.now()-(_cache.ts||0) < 25*60*1000));
+    var _fresh=!!(_cache && _cache.cp && _cache.context===JSON.stringify(paymentContext()) && (Date.now()-(_cache.ts||0) < 25*60*1000));
     if(_prevTx && !localStorage.getItem('pixPaid_'+_prevTx)){
       if(_fresh && _cache.ids===_prevTx){
         var _run=function(){ showPixCode(_cache.cp, _cache.qr); };
@@ -659,11 +651,28 @@
       } else {
         try{ localStorage.removeItem('lv_pix_cache'); }catch(e){}
       }
-      startPolling(_prevTx);
+      if(_fresh)startPolling(_prevTx);
     } else {
       try{ localStorage.removeItem('lv_pix_cache'); }catch(e){}
     }
   }catch(e){}
+  function paymentContext(){
+    var s=window.__lvPedido;
+    if(!s){try{var saved=JSON.parse(localStorage.getItem('pedidoResumo')||'{}');s={qty:saved.quantidade,shipping:saved.frete,bumps:saved.ofertas};}catch(e){s={};}}
+    s=s||{};
+    var color=new URLSearchParams(location.search).get('cor')||localStorage.getItem('lvBolsaColor')||'Preto';
+    return {qty:Number(s.qty)||1,color:color,shippingMethod:(s.shipping||{}).name||'PAC - FRETE GRÁTIS',
+      bumpIds:(s.bumps||[]).map(function(b){return b.id;})};
+  }
+  function paymentRequestId(payload){
+    var signature=JSON.stringify([payload.amount,payload.client,payload.shipping,payload.products,payload.shippingMethod,payload.bumpIds]);
+    var previous=null;try{previous=JSON.parse(sessionStorage.getItem('lv_avem_request')||'null');}catch(e){}
+    if(previous&&previous.signature===signature&&Date.now()-previous.at<24*3600000)return previous.id;
+    var bytes=new Uint8Array(16);crypto.getRandomValues(bytes);
+    var id=Array.prototype.map.call(bytes,function(b){return b.toString(16).padStart(2,'0');}).join('');
+    try{sessionStorage.setItem('lv_avem_request',JSON.stringify({id:id,signature:signature,at:Date.now()}));}catch(e){}
+    return id;
+  }
   function createPix(attempt){
     attempt = attempt || 0;
     if(loaded) return;
@@ -673,13 +682,14 @@
     saveDados();
     var _d=loadDados();
     var _v=function(id){var el=document.getElementById(id);return el&&el.value?String(el.value).trim():'';};
+    var context=paymentContext();
     var payload={
       amount: amount,
       client: {
-        name: getVal('Nome e Sobrenome') || _d.nome || 'Cliente',
-        email: getVal('email@email.com') || _d.email || 'cliente@email.com',
-        document: ((getVal('123.456.789-12')||_d.cpf||'00000000000')+'').replace(/\D/g,''),
-        phone: ((getVal('(99) 99999-9999')||_d.telefone||'11999999999')+'').replace(/\D/g,'')
+        name: getVal('Nome e Sobrenome') || _d.nome || '',
+        email: getVal('email@email.com') || _d.email || '',
+        document: ((getVal('123.456.789-12')||_d.cpf||'')+'').replace(/\D/g,''),
+        phone: ((getVal('(99) 99999-9999')||_d.telefone||'')+'').replace(/\D/g,'')
       },
       shipping: {
         cep: _v('lv-cep'),
@@ -690,11 +700,14 @@
         cidade: _v('lv-cidade'),
         uf: _v('lv-uf')
       },
-      products: [{ name: 'BOLSA_TRANSVERSAL', quantity: 1, price: amount, variant: (function(){ try{ return new URLSearchParams(location.search).get('cor') || localStorage.getItem('lvBolsaColor') || 'Preto'; }catch(e){ return 'Preto'; } })() }],
+      products: [{ name: 'BOLSA_TRANSVERSAL', quantity: context.qty, price: 34.99, variant: context.color }],
+      shippingMethod: context.shippingMethod,
+      bumpIds: context.bumpIds,
       utm: (window.getUTMs ? window.getUTMs() : {}),
       fb: (window.getFbData ? window.getFbData() : {}),
       browser: (window.getFbData ? window.getFbData() : {})
     };
+    payload.requestId=paymentRequestId(payload);
     function fail(msg, noRetry){
       if(!noRetry && attempt < 3){ setTimeout(function(){ createPix(attempt+1); }, 1200*(attempt+1)); return; }
       var codeEl=document.getElementById('lv-pix-code');
@@ -713,6 +726,7 @@
         var codeEl=document.getElementById('lv-pix-code');
         var qrEl=document.getElementById('lv-pix-qr');
         if(!res.ok || !res.j || !res.j.copyPaste){
+          if(res.j && res.j.retryable===false){ fail(res.j.error||'Confira os dados do pedido.', true); return; }
           if(res.j && res.j.code==='invalid_document'){ fail(res.j.error, true); return; }
           fail('Não foi possível gerar o PIX. Tente novamente.');
           return;
@@ -737,8 +751,8 @@
         var qrToggle=document.getElementById('lv-pix-qr-toggle');
         if(qrToggle) qrToggle.style.display='flex';
         var ids=[res.j.transactionId,res.j.gatewayTransactionId].filter(Boolean).filter(function(v,i,a){return a.indexOf(v)===i;}).join(',');
-        try{ localStorage.setItem('lastPixTx', ids||''); localStorage.setItem('lastPixTxAt', String(Date.now())); localStorage.setItem('lvPixNext','/upsell1'); localStorage.setItem('lastPixOrder', res.j.orderId||res.j.gatewayTransactionId||''); }catch(e){}
-        try{ localStorage.setItem('lv_pix_cache', JSON.stringify({ids:ids||'',cp:cp,qr:res.j.qrCode||'',ts:Date.now()})); }catch(e){}
+        try{ localStorage.setItem('lastPixTx', ids||''); localStorage.setItem('lastPixTxAt', String(Date.now())); localStorage.setItem('lvPixNext','/pedido-confirmado'); localStorage.setItem('lastPixOrder', res.j.orderId||res.j.gatewayTransactionId||''); }catch(e){}
+        try{ localStorage.setItem('lv_pix_cache', JSON.stringify({ids:ids||'',cp:cp,qr:res.j.qrCode||'',ts:Date.now(),context:JSON.stringify(paymentContext())})); }catch(e){}
         if(ids) startPolling(ids);
       })
       .catch(function(){ fail('Erro de conexão. Tente novamente.'); });

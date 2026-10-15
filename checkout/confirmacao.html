@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Confirmação do pedido — Romantic Crown</title><meta name="robots" content="noindex,nofollow">
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f5f5;color:#171717;min-height:100dvh;display:grid;place-items:center;padding:24px}.card{width:100%;max-width:440px;background:#fff;border:1px solid #eee;border-radius:20px;padding:32px 24px;text-align:center;box-shadow:0 6px 20px #00000008}.brand{font-family:Georgia,serif;font-weight:bold;font-size:20px;margin-bottom:24px}.icon{display:grid;place-items:center;width:64px;height:64px;background:#f1f5f9;color:#475569;border-radius:50%;font-size:30px;margin:0 auto 18px}.paid .icon{background:#dcfce7;color:#15803d}h1{font-size:23px;margin:0 0 12px}p{font-size:14px;line-height:1.6;color:#525252}a{display:inline-block;margin-top:14px;color:#111;font-size:14px}.reference{overflow-wrap:anywhere;font-size:12px;color:#737373}</style>
+</head><body><main class="card" aria-live="polite"><div class="brand">Romantic Crown</div><div class="icon" id="icon">…</div><h1 id="title">Consultando pagamento</h1><p id="message">Aguarde enquanto confirmamos o status do seu pedido.</p><p class="reference" id="reference"></p><a href="/">Voltar à loja</a></main>
+<script>
+(function(){
+  var id='';try{id=localStorage.getItem('lastPixTx')||'';}catch(e){}
+  var title=document.getElementById('title'),message=document.getElementById('message'),icon=document.getElementById('icon');
+  function show(t,m){title.textContent=t;message.textContent=m;}
+  if(!/^[A-Za-z0-9_-]{8,160}$/.test(id)){show('Consulte seu pedido','Abra esta página no navegador em que você realizou a compra.');return;}
+  var busy=false,done=false,timer;
+  function check(){
+    if(busy||done)return;busy=true;
+    fetch('/api/public/pix/status?id='+encodeURIComponent(id),{cache:'no-store'})
+      .then(function(r){if(!r.ok)throw new Error();return r.json();})
+      .then(function(data){
+        if(data.status==='paid'){
+          done=true;clearInterval(timer);
+          document.querySelector('main').classList.add('paid');icon.textContent='✓';
+          show('Pagamento confirmado!','Seu pagamento foi recebido e o pedido está confirmado.');
+          document.getElementById('reference').textContent='Pedido: '+data.transactionId;
+          try{localStorage.setItem('pixPaid_'+id,'1');localStorage.removeItem('lv_pix_cache');sessionStorage.removeItem('lv_avem_request');}catch(e){}
+        }else{icon.textContent='…';show('Aguardando pagamento','Se você já pagou, aguarde a confirmação. Esta página será atualizada automaticamente.');}
+      }).catch(function(){show('Não foi possível consultar agora','Tente novamente em alguns instantes. A aprovação depende da confirmação do pagamento.');})
+      .finally(function(){busy=false;});
+  }
+  check();timer=setInterval(check,5000);
+  window.addEventListener('focus',check);
+})();
+</script></body></html>
