@@ -656,6 +656,9 @@
       try{ localStorage.removeItem('lv_pix_cache'); }catch(e){}
     }
   }catch(e){}
+  function metaCookie(name){
+    try{var row=document.cookie.split('; ').find(function(v){return v.indexOf(name+'=')===0;});return row?decodeURIComponent(row.slice(name.length+1)):'';}catch(e){return '';}
+  }
   function paymentContext(){
     var s=window.__lvPedido;
     if(!s){try{var saved=JSON.parse(localStorage.getItem('pedidoResumo')||'{}');s={qty:saved.quantidade,shipping:saved.frete,bumps:saved.ofertas};}catch(e){s={};}}
@@ -704,6 +707,7 @@
       shippingMethod: context.shippingMethod,
       bumpIds: context.bumpIds,
       utm: (window.getUTMs ? window.getUTMs() : {}),
+      meta: {fbp:metaCookie('_fbp'),fbc:metaCookie('_fbc')},
       fb: (window.getFbData ? window.getFbData() : {}),
       browser: (window.getFbData ? window.getFbData() : {})
     };

@@ -80,5 +80,11 @@
       "source": "/upsell4/",
       "destination": "/upsell4/upsell4.html"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/internal/meta-purchases",
+      "schedule": "0 9 * * *"
+    }
   ]
 }

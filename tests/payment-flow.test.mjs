@@ -22,17 +22,22 @@ function setup(t){
  names.forEach((k,i)=>process.env[k]=values[i]);
  t.after(()=>names.forEach((k,i)=>previous[i]===undefined?delete process.env[k]:process.env[k]=previous[i]));
  const records=new Map();
- const state={records,creates:0,storeFailed:false,earlyWebhook:false,gate:null};
+ const state={records,creates:0,storeFailed:false,earlyWebhook:false,gate:null,metaCalls:0,metaReject:false};
  t.mock.method(globalThis,'fetch',async(url,options)=>{
   if(url==='https://redis.example.com'){
    if(state.storeFailed)throw new Error('storage offline');
    const [cmd,key,value,...flags]=JSON.parse(options.body);
+   if(cmd==='ZADD'||cmd==='ZREM')return Response.json({result:1});
    if(cmd==='GET')return Response.json({result:records.get(key)||null});
    if(cmd==='SET'){
     if(flags.includes('NX')&&records.has(key))return Response.json({result:null});
     records.set(key,value);return Response.json({result:'OK'});
    }
    assert.fail('unexpected redis command '+cmd);
+  }
+  if(String(url).startsWith('https://graph.facebook.com/')){
+   state.metaCalls++;
+   return state.metaReject?Response.json({error:{code:190}},{status:400}):Response.json({events_received:1});
   }
   assert.equal(url,'https://api.avempay.com.br/v1/gateway/');
   state.creates++;
@@ -129,4 +134,16 @@ test('simultaneous create requests only call gateway once',async(t)=>{
  await new Promise(resolve=>setImmediate(resolve));
  await createPayment(create(),second);assert.equal(second.code,409);
  release();await firstRequest;assert.equal(first.code,201);assert.equal(state.creates,1);
+});
+
+
+test('paid callbacks send one Meta Purchase and advertising failures never block financial confirmation',async t=>{
+ const state=setup(t);const previous=process.env.META_ACCESS_TOKEN;process.env.META_ACCESS_TOKEN='local-test-token';
+ t.after(()=>previous===undefined?delete process.env.META_ACCESS_TOKEN:process.env.META_ACCESS_TOKEN=previous);
+ const created=response();await createPayment(create(),created);assert.equal(state.metaCalls,0);
+ const accepted=response();await receiveWebhook(hook(),accepted);assert.equal(accepted.code,200);assert.equal(state.metaCalls,1);
+ const duplicate=response();await receiveWebhook(hook(),duplicate);assert.equal(duplicate.code,200);assert.equal(state.metaCalls,1);
+ state.records.delete('meta:purchase:sent:1096982006197307:'+transaction);state.records.delete('meta:purchase:lock:'+transaction);state.metaReject=true;
+ const failedMeta=response();await receiveWebhook(hook(),failedMeta);assert.equal(failedMeta.code,200);
+ const status=response();await getPaymentStatus({method:'GET',query:{id:transaction}},status);assert.equal(status.body.status,'paid');
 });
