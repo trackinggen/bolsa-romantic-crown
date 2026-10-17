@@ -42,3 +42,5 @@ Configure META_ACCESS_TOKEN, META_PIXEL_ID e CRON_SECRET exclusivamente nas vari
 A fila Redis é criada antes de confirmar o recebimento do callback. Envios aceitos têm marcador persistente e event_id estável `avem:purchase:<idTransaction>`; erros ou timeout conservam o mesmo ID e horário nas retentativas. O checkout, callbacks duplicados e o cron diário autenticado tentam novamente. A Meta é independente da confirmação financeira. Eventos de mais de seis dias não são reenviados. Não configure um segundo Purchase via UTMify/IronPay para a mesma compra sem compartilhar esse event_id.
 
 Pix avulso de teste sem pedido não é convertido em compra atribuída a cliente. Os testes são simulados e não geram conversões reais no pixel.
+
+Validation: 20 automated tests pass, including confirmed payments, duplicate callbacks, Meta timeouts and retries.
