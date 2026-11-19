@@ -2,6 +2,7 @@
   var cover='https://www.rockstargames.com/VI/_next/static/media/Official_Cover_Art_landscape.12.uu2irr.2_a.jpg?akim=1&imdensity=1&imwidth=3840';
   var format='fisica';
   var platform='PS5';
+  try{platform=localStorage.getItem('gtaViPlatform')==='XBOX'?'XBOX':'PS5';}catch(_){}
   function checkout(value){
     try{localStorage.setItem('gtaViFormat',value);}catch(_){}
     try{localStorage.setItem('gtaViPlatform',platform);}catch(_){}
@@ -42,7 +43,7 @@
         modal.classList.add('is-open');
         modal.setAttribute('aria-hidden','false');
         setFormat(format);
-        platform='PS5';
+        modal.querySelectorAll('[data-gta-platform]').forEach(function(b){b.classList.toggle('is-selected',b.getAttribute('data-gta-platform')===platform);});
       });
     });
   }
