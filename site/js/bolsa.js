@@ -1,14 +1,8 @@
 (function(){
-  var colors={Preto:'/site/images/bolsa/bolsa-1.webp',Branco:'/site/images/bolsa/bolsa-branco.jpg',Marrom:'/site/images/bolsa/bolsa-marrom.jpg'};
-  function selected(){try{return localStorage.getItem('lvBolsaColor')||'Preto';}catch(_){return'Preto';}}
-  function checkout(color){return '/pagamento?produto=BOLSA_TRANSVERSAL&amount=34.99&cor='+encodeURIComponent(color);}
-  function setColor(color){try{localStorage.setItem('lvBolsaColor',color);}catch(_){} document.querySelectorAll('[data-bolsa-color]').forEach(function(b){var active=b.dataset.bolsaColor===color;b.classList.toggle('is-selected',active);b.setAttribute('aria-pressed',active?'true':'false');});var preview=document.querySelector('#bolsa-color-modal img');if(preview)preview.src=colors[color];}
-  function addModal(){if(document.getElementById('bolsa-color-modal'))return;var modal=document.createElement('div');modal.id='bolsa-color-modal';modal.className='bolsa-modal';modal.setAttribute('aria-hidden','true');modal.innerHTML='<div class="bolsa-modal__backdrop"></div><section class="bolsa-modal__dialog" role="dialog" aria-modal="true" aria-label="Escolha a cor"><button class="bolsa-modal__close" type="button" aria-label="Fechar">×</button><img src="'+colors[selected()]+'" alt="Bolsa feminina"><h2>Escolha a cor da sua bolsa</h2><div class="bolsa-modal__colors">'+Object.keys(colors).map(function(c){return '<button type="button" data-bolsa-color="'+c+'"><span class="bolsa-swatch '+c.toLowerCase()+'"></span>'+c+'</button>';}).join('')+'</div><button type="button" class="bolsa-modal__confirm">Continuar para pagamento</button></section>';document.body.appendChild(modal);modal.querySelectorAll('[data-bolsa-color]').forEach(function(b){b.addEventListener('click',function(){setColor(b.dataset.bolsaColor);});});function close(){modal.classList.remove('is-open');modal.setAttribute('aria-hidden','true');}modal.querySelector('.bolsa-modal__close').addEventListener('click',close);modal.querySelector('.bolsa-modal__backdrop').addEventListener('click',close);modal.querySelector('.bolsa-modal__confirm').addEventListener('click',function(){location.href=checkout(selected());});}
-  function bindBuy(){document.querySelectorAll('[data-product-buy="true"]').forEach(function(link){link.addEventListener('click',function(e){e.preventDefault();var modal=document.getElementById('bolsa-color-modal');modal.classList.add('is-open');modal.setAttribute('aria-hidden','false');setColor(selected());});});}
-  function refreshOfferPrice(){var walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);nodes.forEach(function(node){node.nodeValue=node.nodeValue.replace(/34,90/g,'34,99').replace(/69,90/g,'79,99').replace(/35,00/g,'45,00').replace(/-50%/g,'-56%');});}
-  function boot(){addModal();bindBuy();refreshOfferPrice();}
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  var format='fisica';
+  var buttons=document.querySelectorAll('[data-format]');
+  function select(value){format=value;buttons.forEach(function(b){var active=b.getAttribute('data-format')===value;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active?'true':'false');});}
+  buttons.forEach(function(b){b.addEventListener('click',function(){select(b.getAttribute('data-format'));});});
+  var buy=document.getElementById('buy');
+  if(buy)buy.addEventListener('click',function(){try{localStorage.setItem('gtaViFormat',format);}catch(e){}location.href='/pagamento?produto=GRAND_THEFT_AUTO_VI&amount=247.00&formato='+encodeURIComponent(format);});
 })();
-
-
-
