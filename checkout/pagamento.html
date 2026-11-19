@@ -660,12 +660,18 @@
     try{var row=document.cookie.split('; ').find(function(v){return v.indexOf(name+'=')===0;});return row?decodeURIComponent(row.slice(name.length+1)):'';}catch(e){return '';}
   }
   function paymentContext(){
-    var s=window.__lvPedido;
-    if(!s){try{var saved=JSON.parse(localStorage.getItem('pedidoResumo')||'{}');s={qty:saved.quantidade,shipping:saved.frete,bumps:saved.ofertas};}catch(e){s={};}}
-    s=s||{};
+    var s=window.__lvPedido||{};
     var format=(new URLSearchParams(location.search).get('formato')||localStorage.getItem('gtaViFormat')||'fisica').toLowerCase()==='digital'?'Digital':'Fisica';
-    return {qty:Number(s.qty)||1,format:format,shippingMethod:(s.shipping||{}).name||'PAC - FRETE GRÁTIS',
-      bumpIds:(s.bumps||[]).map(function(b){return b.id;})};
+    var qtyEl=document.querySelector('.border-neutral-200 > span');
+    var qty=qtyEl&&/^\\d+$/.test((qtyEl.innerText||'').trim())?parseInt(qtyEl.innerText,10):Number(s.qty)||1;
+    var bumps=Array.prototype.slice.call(document.querySelectorAll('#lv-bumps .lv-bump.on')).map(function(card){return card.dataset.id;});
+    var chosen=null;
+    document.querySelectorAll('#lv-step-2 button').forEach(function(button){
+      var img=button.querySelector('img');
+      if(img&&/pac|jadlog|sedex|envio imediato/i.test(img.alt||'')&&/border-emerald-[56]00/.test(button.className||''))chosen=img.alt;
+    });
+    var shippingMethod=format==='Digital'?'Envio imediato':(chosen==='PAC'?'PAC - FRETE GRÁTIS':chosen||((s.shipping||{}).name)||'PAC - FRETE GRÁTIS');
+    return {qty:qty,format:format,shippingMethod:shippingMethod,bumpIds:bumps};
   }
   function paymentRequestId(payload){
     var signature=JSON.stringify([payload.amount,payload.client,payload.shipping,payload.products,payload.shippingMethod,payload.bumpIds]);
