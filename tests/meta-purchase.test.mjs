@@ -4,10 +4,10 @@ import {createHash} from 'node:crypto';
 import {buildPurchaseEvent,captureMetaContext,deliverPurchase,retryPurchases} from '../lib/meta-purchase.mjs';
 const id='real_order_for_local_test';
 const hash=s=>createHash('sha256').update(s).digest('hex');
-const order=()=>({transactionId:id,amountInCents:3499,client:{name:'Maria Teste',email:'MARIA@example.com',phone:'11999999999'},
- shipping:{cidade:'São Paulo',uf:'SP',cep:'01001000'},products:[{id:'BOLSA_TRANSVERSAL',quantity:1,priceInCents:3499}],
+const order=()=>({transactionId:id,amountInCents:24700,client:{name:'Maria Teste',email:'MARIA@example.com',phone:'11999999999'},
+ shipping:{cidade:'São Paulo',uf:'SP',cep:'01001000'},products:[{id:'GRAND_THEFT_AUTO_VI',quantity:1,priceInCents:24700}],
  meta:{clientIp:'192.0.2.1',userAgent:'Local test browser',fbp:'fb.1.1700000000000.1234',fbc:'fb.1.1700000000000.click-id'}});
-const receipt=()=>({transactionId:id,amountInCents:3499,status:'paid',paidAt:new Date().toISOString()});
+const receipt=()=>({transactionId:id,amountInCents:24700,status:'paid',paidAt:new Date().toISOString()});
 function response(){return{code:200,setHeader(){},status(v){this.code=v;return this;},json(v){this.body=v;return this;}};}
 function setup(t){
  const names=['META_ACCESS_TOKEN','META_PIXEL_ID','CRON_SECRET','UPSTASH_REDIS_REST_URL','UPSTASH_REDIS_REST_TOKEN'];
@@ -42,7 +42,7 @@ function setup(t){
 
 test('only matched paid receipts produce Purchase; personal fields are hashed and value is reais',()=>{
  const o=order(),r=receipt(),event=buildPurchaseEvent(o,r);
- assert.equal(event.event_name,'Purchase');assert.equal(event.custom_data.value,34.99);assert.equal(event.custom_data.currency,'BRL');
+ assert.equal(event.event_name,'Purchase');assert.equal(event.custom_data.value,247.00);assert.equal(event.custom_data.currency,'BRL');
  assert.equal(event.event_id,'avem:purchase:'+id);assert.equal(event.user_data.em[0],hash('maria@example.com'));
  assert.equal(event.user_data.ph[0],hash('5511999999999'));assert.equal(event.user_data.ct[0],hash('saopaulo'));
  assert.equal(event.user_data.fbp,o.meta.fbp);assert.equal(event.user_data.client_ip_address,'192.0.2.1');
