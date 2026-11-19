@@ -81,6 +81,8 @@ test('server computes real basket and rejects changed totals, unknown offers and
  }
 });
 
+test('Xbox platform is retained in the order product',()=>{ const xbox=body();xbox.products[0].platform='XBOX';const parsed=parseOrder(xbox);assert.equal(parsed.products[0].name,'Grand Theft Auto VI para XBOX - Fisica');assert.equal(parsed.products[0].platform,'XBOX'); });
+
 test('digital format uses only Envio imediato and does not require a delivery address',()=>{
  const digital=body();digital.products[0].variant='Digital';digital.shippingMethod='Envio imediato';digital.shipping={};digital.amount=247.00;
  const parsed=parseOrder(digital);assert.equal(parsed.amountInCents,24700);assert.equal(parsed.shipping.method,'Envio imediato');assert.equal(parsed.shipping.cep,'');
