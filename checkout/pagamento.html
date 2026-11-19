@@ -873,11 +873,19 @@
   var UNIT=247.00;
   var KITS=[];
   var KIT_IMG='https://www.rockstargames.com/VI/_next/static/media/Official_Cover_Art_landscape.12.uu2irr.2_a.jpg?akim=1&imdensity=1&imwidth=3840';
-  var BUMPS=[
+  var PHYSICAL_BUMPS=[
     {id:'camiseta-gta-vi',title:'Camiseta GTA VI',desc:'Camiseta temática de Grand Theft Auto VI.',price:19.90,old:19.90,disc:0,img:'https://down-br.img.susercontent.com/file/br-11134207-7r98o-loyi66x35s2d08',tag:'OFERTA ADICIONAL'},
     {id:'bone-gta-vi',title:'Boné GTA VI',desc:'Boné temático de Grand Theft Auto VI.',price:29.90,old:29.90,disc:0,img:'https://down-br.img.susercontent.com/file/br-11134207-7r98o-lovvrmgp2p4i71',tag:'OFERTA ADICIONAL'}
   ];
-  var ALL=KITS.concat(BUMPS);
+  var DIGITAL_BUMPS=[
+    {id:'gta-plus-mes-1',title:'1º mês de GTA+',desc:'Disponível para compras feitas até o lançamento (19 de novembro). Resgate pelo menu do jogo. Atenção: a assinatura tem renovação automática.',price:29.90,old:29.90,disc:0,img:KIT_IMG,tag:'OFERTA ADICIONAL'},
+    {id:'pacote-vintage-vice-city',title:'Pacote Vintage Vice City',desc:'Inclui o carro clássico Vapid Stanier (1955), garagem temática dos anos 80, trajes e cortes de cabelo retrô para Jason e Lucia, além de padronagem tropical inspirada em Tommy Vercetti para armas.',price:69.90,old:69.90,disc:0,img:KIT_IMG,tag:'OFERTA ADICIONAL'}
+  ];
+  var ALL=KITS.concat(PHYSICAL_BUMPS,DIGITAL_BUMPS);
+  function activeBumps(){
+    var digital=(new URLSearchParams(location.search).get('formato')||localStorage.getItem('gtaViFormat')||'fisica').toLowerCase()==='digital';
+    return digital?DIGITAL_BUMPS:PHYSICAL_BUMPS;
+  }
   var selected={};
   function fmt(n){return 'R$\u00a0'+n.toFixed(2).replace('.',',');}
   function bumpsTotal(){var s=0;ALL.forEach(function(b){if(selected[b.id])s+=b.price;});return s;}
@@ -908,7 +916,7 @@
     var wrap=document.createElement('section');
     wrap.id='lv-bumps';
     var html='<h3>Adicione essas ofertas na sua compra</h3><p class="lv-sub">Só hoje, com desconto exclusivo do Romantic Crown.</p>';
-    BUMPS.forEach(function(b){
+    activeBumps().forEach(function(b){
       html+='<div class="lv-bump" data-id="'+b.id+'">'+
         (b.tag?'<div class="lv-tag">'+b.tag+'</div>':'')+
         '<div class="lv-check"></div>'+
@@ -1057,6 +1065,12 @@
   },true);
 
   function boot(){ render(); }
+  document.addEventListener('gta-format-change',function(){
+    selected={};
+    var old=document.getElementById('lv-bumps');if(old)old.remove();
+    render();
+    updateSummary();
+  });
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
   new MutationObserver(function(){ if(!document.getElementById('lv-bumps')) render(); }).observe(document.body,{childList:true,subtree:true});
 })();
@@ -1097,7 +1111,7 @@ window.__lvSetEta("Frete Grátis");})();</script><script src="/checkout/js/resta
       var box=document.createElement('section');box.id='gta-format-picker';box.className='bg-white rounded-2xl shadow-sm p-4';
       box.innerHTML='<h3 style="font-size:14px;font-weight:800;margin:0 0 12px">Formato do jogo</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:9px"><button type="button" data-gta-format="fisica" style="border:1px solid #d1d5db;border-radius:10px;padding:12px;text-align:left"><b>Mídia física</b><small style="display:block;color:#6b7280;margin-top:4px">Entrega pelos fretes disponíveis</small></button><button type="button" data-gta-format="digital" style="border:1px solid #d1d5db;border-radius:10px;padding:12px;text-align:left"><b>Digital</b><small style="display:block;color:#6b7280;margin-top:4px">Envio imediato · frete grátis</small></button></div>';
       if(card)step.insertBefore(box,card);else step.insertBefore(box,step.firstChild);
-      box.addEventListener('click',function(e){var b=e.target.closest('[data-gta-format]');if(!b)return;format=b.dataset.gtaFormat;try{localStorage.setItem('gtaViFormat',format);}catch(_){}paint();});
+      box.addEventListener('click',function(e){var b=e.target.closest('[data-gta-format]');if(!b)return;format=b.dataset.gtaFormat;try{localStorage.setItem('gtaViFormat',format);}catch(_){}document.dispatchEvent(new Event('gta-format-change'));paint();});
     }
     var picker=document.getElementById('gta-format-picker');
     picker.querySelectorAll('[data-gta-format]').forEach(function(b){var active=b.dataset.gtaFormat===format;b.style.borderColor=active?'#059669':'#d1d5db';b.style.background=active?'#ecfdf5':'#fff';});
@@ -1156,6 +1170,8 @@ window.__lvSetEta("Frete Grátis");})();</script><script src="/checkout/js/resta
   }
 
   function readShipping(){
+    var selectedFormat=(new URLSearchParams(location.search).get('formato')||localStorage.getItem('gtaViFormat')||'fisica').toLowerCase();
+    if(selectedFormat==='digital') return { name: 'Envio imediato', price: 0 };
     var chosen = null, first = null;
     document.querySelectorAll('#lv-step-2 button').forEach(function(b){
       var img = b.querySelector('img');
