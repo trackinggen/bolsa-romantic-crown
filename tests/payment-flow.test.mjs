@@ -39,7 +39,7 @@ function setup(t){
    state.metaCalls++;
    return state.metaReject?Response.json({error:{code:190}},{status:400}):Response.json({events_received:1});
   }
-  assert.equal(url,'https://api.avempay.com.br/v1/gateway/');
+  assert.equal(url,'https://api.avempay.com/v1/gateway/');
   state.creates++;
   const sent=JSON.parse(options.body);
   assert.equal(sent.amount,34.99);
