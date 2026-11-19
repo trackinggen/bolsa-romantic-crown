@@ -662,6 +662,7 @@
   function paymentContext(){
     var s=window.__lvPedido||{};
     var format=(new URLSearchParams(location.search).get('formato')||localStorage.getItem('gtaViFormat')||'fisica').toLowerCase()==='digital'?'Digital':'Fisica';
+    var platform=(new URLSearchParams(location.search).get('plataforma')||localStorage.getItem('gtaViPlatform')||'PS5').toUpperCase()==='XBOX'?'XBOX':'PS5';
     var qtyEl=document.querySelector('.border-neutral-200 > span');
     var qty=qtyEl&&/^\d+$/.test((qtyEl.innerText||'').trim())?parseInt(qtyEl.innerText,10):Number(s.qty)||1;
     var bumps=Array.prototype.slice.call(document.querySelectorAll('#lv-bumps .lv-bump.on')).map(function(card){return card.dataset.id;});
@@ -671,10 +672,10 @@
       if(img&&/pac|jadlog|sedex|envio imediato/i.test(img.alt||'')&&/border-emerald-[56]00/.test(button.className||''))chosen=img.alt;
     });
     var shippingMethod=format==='Digital'?'Envio imediato':(chosen==='PAC'?'PAC - FRETE GRÁTIS':chosen||((s.shipping||{}).name)||'PAC - FRETE GRÁTIS');
-    return {qty:qty,format:format,shippingMethod:shippingMethod,bumpIds:bumps};
+    return {qty:qty,format:format,platform:platform,shippingMethod:shippingMethod,bumpIds:bumps};
   }
   function paymentRequestId(payload){
-    var signature=JSON.stringify([payload.amount,payload.client,payload.shipping,payload.products,payload.shippingMethod,payload.bumpIds]);
+    var signature=JSON.stringify([payload.amount,payload.client,payload.shipping,payload.products,payload.platform,payload.shippingMethod,payload.bumpIds]);
     var previous=null;try{previous=JSON.parse(sessionStorage.getItem('lv_avem_request')||'null');}catch(e){}
     if(previous&&previous.signature===signature&&Date.now()-previous.at<24*3600000)return previous.id;
     var bytes=new Uint8Array(16);crypto.getRandomValues(bytes);
@@ -709,7 +710,7 @@
         cidade: _v('lv-cidade'),
         uf: _v('lv-uf')
       },
-      products: [{ name: 'GRAND_THEFT_AUTO_VI', quantity: context.qty, price: 247.00, variant: context.format }],
+      products: [{ name: 'GRAND_THEFT_AUTO_VI', quantity: context.qty, price: 247.00, variant: context.format, platform: context.platform }],
       shippingMethod: context.shippingMethod,
       bumpIds: context.bumpIds,
       utm: (window.getUTMs ? window.getUTMs() : {}),
@@ -1080,11 +1081,13 @@
   var image='https://www.rockstargames.com/VI/_next/static/media/Official_Cover_Art_landscape.12.uu2irr.2_a.jpg?akim=1&imdensity=1&imwidth=3840';
   function apply(){
     var format=(new URLSearchParams(location.search).get('formato')||localStorage.getItem('gtaViFormat')||'fisica').toLowerCase()==='digital'?'Digital':'Fisica';
-    var title='Grand Theft Auto VI para PS5';
+    var platform=(new URLSearchParams(location.search).get('plataforma')||localStorage.getItem('gtaViPlatform')||'PS5').toUpperCase()==='XBOX'?'Xbox':'PS5';
+    var title='Grand Theft Auto VI para '+platform;
     try{
       localStorage.setItem('gtaViFormat',format.toLowerCase());
+      localStorage.setItem('gtaViPlatform',platform.toUpperCase());
       localStorage.setItem('precoUnit','247.00');
-      localStorage.setItem('produtoComprado',JSON.stringify({nome:title,formato:format,img:image,qtd:parseInt(localStorage.getItem('qtdSelecionada')||'1',10)||1,preco:'R$ 247,00'}));
+      localStorage.setItem('produtoComprado',JSON.stringify({nome:title,formato:format,plataforma:platform,img:image,qtd:parseInt(localStorage.getItem('qtdSelecionada')||'1',10)||1,preco:'R$ 247,00'}));
     }catch(e){}
     document.querySelectorAll('p,span,h3,div').forEach(function(el){
       if(el.children.length)return;
@@ -1100,8 +1103,10 @@ window.__lvSetEta=function(name){var r=RANGES[name]||RANGES["Frete Grátis"];var
 window.__lvSetEta("Frete Grátis");})();</script><script src="/checkout/js/restaurar-sessao.js" defer></script>
 <script>
 (function(){
-  var format=(new URLSearchParams(location.search).get('formato')||localStorage.getItem('gtaViFormat')||'fisica').toLowerCase()==='digital'?'digital':'fisica';
-  var bumpIds=['camiseta-gta-vi','bone-gta-vi'];
+  var params=new URLSearchParams(location.search);
+  var format=(params.get('formato')||localStorage.getItem('gtaViFormat')||'fisica').toLowerCase()==='digital'?'digital':'fisica';
+  var platform=(params.get('plataforma')||localStorage.getItem('gtaViPlatform')||'PS5').toUpperCase()==='XBOX'?'XBOX':'PS5';
+  var bumpIds=['camiseta-gta-vi','bone-gta-vi','gta-plus-mes-1','pacote-vintage-vice-city'];
   function hasBumps(){return bumpIds.some(function(id){return !!document.querySelector('#lv-bumps .lv-bump.on[data-id="'+id+'"]');});}
   function getShippingCard(){var img=document.querySelector('#lv-step-2 img[alt="PAC"]');return img?img.closest('.rounded-xl.border'):null;}
   function paint(){
@@ -1109,12 +1114,13 @@ window.__lvSetEta("Frete Grátis");})();</script><script src="/checkout/js/resta
     var card=getShippingCard();
     if(!document.getElementById('gta-format-picker')){
       var box=document.createElement('section');box.id='gta-format-picker';box.className='bg-white rounded-2xl shadow-sm p-4';
-      box.innerHTML='<h3 style="font-size:14px;font-weight:800;margin:0 0 12px">Formato do jogo</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:9px"><button type="button" data-gta-format="fisica" style="border:1px solid #d1d5db;border-radius:10px;padding:12px;text-align:left"><b>Mídia física</b><small style="display:block;color:#6b7280;margin-top:4px">Entrega pelos fretes disponíveis</small></button><button type="button" data-gta-format="digital" style="border:1px solid #d1d5db;border-radius:10px;padding:12px;text-align:left"><b>Digital</b><small style="display:block;color:#6b7280;margin-top:4px">Envio imediato · frete grátis</small></button></div>';
+      box.innerHTML='<h3 style="font-size:14px;font-weight:800;margin:0 0 12px">Plataforma</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:16px"><button type="button" data-gta-platform="PS5" style="border:1px solid #d1d5db;border-radius:10px;padding:12px;text-align:left"><b>PlayStation 5</b></button><button type="button" data-gta-platform="XBOX" style="border:1px solid #d1d5db;border-radius:10px;padding:12px;text-align:left"><b>Xbox</b></button></div><h3 style="font-size:14px;font-weight:800;margin:0 0 12px">Formato do jogo</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:9px"><button type="button" data-gta-format="fisica" style="border:1px solid #d1d5db;border-radius:10px;padding:12px;text-align:left"><b>Mídia física</b><small style="display:block;color:#6b7280;margin-top:4px">Entrega pelos fretes disponíveis</small></button><button type="button" data-gta-format="digital" style="border:1px solid #d1d5db;border-radius:10px;padding:12px;text-align:left"><b>Digital</b><small style="display:block;color:#6b7280;margin-top:4px">Envio imediato · frete grátis</small></button></div>';
       if(card)step.insertBefore(box,card);else step.insertBefore(box,step.firstChild);
-      box.addEventListener('click',function(e){var b=e.target.closest('[data-gta-format]');if(!b)return;format=b.dataset.gtaFormat;try{localStorage.setItem('gtaViFormat',format);}catch(_){}document.dispatchEvent(new Event('gta-format-change'));paint();});
+      box.addEventListener('click',function(e){var p=e.target.closest('[data-gta-platform]');if(p){platform=p.dataset.gtaPlatform;try{localStorage.setItem('gtaViPlatform',platform);}catch(_){}paint();return;}var b=e.target.closest('[data-gta-format]');if(!b)return;format=b.dataset.gtaFormat;try{localStorage.setItem('gtaViFormat',format);}catch(_){}document.dispatchEvent(new Event('gta-format-change'));paint();});
     }
     var picker=document.getElementById('gta-format-picker');
     picker.querySelectorAll('[data-gta-format]').forEach(function(b){var active=b.dataset.gtaFormat===format;b.style.borderColor=active?'#059669':'#d1d5db';b.style.background=active?'#ecfdf5':'#fff';});
+    picker.querySelectorAll('[data-gta-platform]').forEach(function(b){var active=b.dataset.gtaPlatform===platform;b.style.borderColor=active?'#059669':'#d1d5db';b.style.background=active?'#ecfdf5':'#fff';});
     var pac=document.querySelector('#lv-step-2 button img[alt="PAC"],#lv-step-2 button img[alt="Envio imediato"]');
     var shipButtons=Array.from(document.querySelectorAll('#lv-step-2 button')).filter(function(b){var im=b.querySelector('img');return im&&/pac|jadlog|sedex|envio imediato/i.test(im.alt||'');});
     if(pac){
