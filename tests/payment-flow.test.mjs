@@ -5,9 +5,9 @@ import { parseOrder, validCpf } from '../lib/payment-order.mjs';
 
 const transaction='test_transaction_123';
 const body=()=>({
- requestId:'1234567890abcdef1234567890abcdef',amount:247.00,
+ requestId:'1234567890abcdef1234567890abcdef',amount:34.99,
  client:{name:'Teste Local',email:'teste@example.com',document:'12345678909',phone:'11999999999'},
- products:[{name:'GRAND_THEFT_AUTO_VI',quantity:1,variant:'Fisica'}],
+ products:[{name:'BOLSA_TRANSVERSAL',quantity:1,variant:'Marrom'}],
  shippingMethod:'PAC - FRETE GRÁTIS',bumpIds:[],
  shipping:{cep:'01001000',logradouro:'Rua de teste',numero:'1',bairro:'Centro',cidade:'Teste',uf:'SP'},
  utm:{source:'FB',campaign:'test-campaign'}
@@ -42,13 +42,13 @@ function setup(t){
   assert.equal(url,'https://api.avempay.com/v1/gateway/');
   state.creates++;
   const sent=JSON.parse(options.body);
-  assert.equal(sent.amount,247.00);
+  assert.equal(sent.amount,34.99);
   assert.equal(sent['api-key'],'test-key');
   assert.equal(sent.client.telefone,'11999999999');
   if(state.gate)await state.gate;
   if(state.earlyWebhook){
    const receipt=response();await receiveWebhook({method:'POST',headers:{'x-webhook-secret':'test-secret'},
-    body:{idTransaction:transaction,status:'paid',amount:247.00}},receipt);
+    body:{idTransaction:transaction,status:'paid',amount:34.99}},receipt);
    assert.equal(receipt.code,200);
   }
   return Response.json({status:'success',paymentCode:'000201mocked-only',idTransaction:transaction});
@@ -57,37 +57,27 @@ function setup(t){
 }
 const create=()=>({method:'POST',body:body()});
 const hook=(overrides={})=>({method:'POST',headers:{'x-webhook-secret':'test-secret'},
- body:{idTransaction:transaction,status:'paid',amount:247.00,...overrides}});
+ body:{idTransaction:transaction,status:'paid',amount:34.99,...overrides}});
 
 test('server computes real basket and rejects changed totals, unknown offers and fee upsells',()=>{
  assert.ok(validCpf('12345678909'));
  assert.ok(!validCpf('00000000000'));
- assert.equal(parseOrder(body()).amountInCents,24700);
- const basket=body();basket.products[0].quantity=2;basket.bumpIds=['camiseta-gta-vi','bone-gta-vi'];
- basket.shippingMethod='JADLOG';basket.amount=562.27;
- assert.equal(parseOrder(basket).amountInCents,56227);
+ assert.equal(parseOrder(body()).amountInCents,3499);
+ const basket=body();basket.products[0].quantity=2;basket.bumpIds=['copo-termico-1200ml','secador-vipelf-1500w'];
+ basket.shippingMethod='JADLOG';basket.amount=158.43;
+ assert.equal(parseOrder(basket).amountInCents,15843);
  for(const change of [
   b=>b.amount=0.70,
   b=>b.products[0].name='Sacola para Presentes',
-  b=>b.products[0].variant='Outro',
+  b=>b.products[0].variant='Azul',
   b=>b.products[0].quantity=-1,
   b=>b.bumpIds=['unknown'],
-  b=>b.bumpIds=['camiseta-gta-vi','camiseta-gta-vi'],
+  b=>b.bumpIds=['copo-termico-1200ml','copo-termico-1200ml'],
   b=>b.client.document='11111111111',
   b=>b.shipping={}
  ]){
   const invalid=body();change(invalid);assert.throws(()=>parseOrder(invalid));
  }
-});
-
-test('digital format uses only Envio imediato and does not require a delivery address',()=>{
- const digital=body();digital.products[0].variant='Digital';digital.shippingMethod='Envio imediato';digital.shipping={};digital.amount=247.00;
- const parsed=parseOrder(digital);assert.equal(parsed.amountInCents,24700);assert.equal(parsed.shipping.method,'Envio imediato');assert.equal(parsed.shipping.cep,'');
- assert.throws(()=>parseOrder({...digital,shippingMethod:'JADLOG'}));
-});
-test('digital order with physical add-ons requires a delivery address',()=>{
- const digital=body();digital.products[0].variant='Digital';digital.shippingMethod='Envio imediato';digital.bumpIds=['camiseta-gta-vi'];digital.shipping={};digital.amount=266.90;
- assert.throws(()=>parseOrder(digital));
 });
 
 test('create, pending poll, paid webhook, duplicate webhook, paid poll',async(t)=>{

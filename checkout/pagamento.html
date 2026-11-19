@@ -913,7 +913,7 @@
           ''+
           ''+
           '<div class="lv-price">'+fmt(b.price)+'</div>'+
-          '<div class="lv-note">✓ Chega junto com seu pedido — sem frete extra</div>'+
+          '<div class="lv-note">✓ Item adicional ao seu pedido</div>'+
         '</div></div>';
     });
     wrap.innerHTML=html;
@@ -1057,11 +1057,7 @@
 </script>
 <script>
 (function(){
-  var colors={
-    Preto:'https://www.rockstargames.com/VI/_next/static/media/Official_Cover_Art_landscape.12.uu2irr.2_a.jpg?akim=1&imdensity=1&imwidth=3840',
-    Branco:'/site/images/bolsa/bolsa-branco.jpg',
-    Marrom:'/site/images/bolsa/bolsa-marrom.jpg'
-  };
+  var image='https://www.rockstargames.com/VI/_next/static/media/Official_Cover_Art_landscape.12.uu2irr.2_a.jpg?akim=1&imdensity=1&imwidth=3840';
   function apply(){
     var format=(new URLSearchParams(location.search).get('formato')||localStorage.getItem('gtaViFormat')||'fisica').toLowerCase()==='digital'?'Digital':'Fisica';
     var title='Grand Theft Auto VI para PS5';
@@ -1105,14 +1101,14 @@ window.__lvSetEta("Frete Grátis");})();</script><script src="/checkout/js/resta
       var first=pac.closest('button'),im=first.querySelector('img'),divs=first.querySelectorAll('div');
       if(format==='digital'){
         im.alt='Envio imediato';im.style.display='none';
-        if(divs[0])divs[0].textContent='Envio imediato';
-        if(divs[1])divs[1].textContent='Entrega digital · frete grátis';
+        if(divs[1])divs[1].textContent='Envio imediato';
+        if(divs[2])divs[2].textContent='Entrega digital · frete grátis';
         shipButtons.forEach(function(b){if(b!==first)b.style.display='none';});
         var price=first.querySelector('#lv-pac-price');if(price)price.textContent='Grátis';
       }else{
         im.alt='PAC';im.style.display='';
-        if(divs[0])divs[0].textContent='PAC - FRETE GRÁTIS';
-        if(divs[1])divs[1].textContent='Entrega em 5 a 7 dias úteis';
+        if(divs[1])divs[1].textContent='PAC - FRETE GRÁTIS';
+        if(divs[2])divs[2].textContent='Entrega em 5 a 7 dias úteis';
         shipButtons.forEach(function(b){b.style.display='';});
       }
       if(first.dataset.gtaSelected!==format){first.dataset.gtaSelected=format;first.click();}
@@ -1133,6 +1129,7 @@ window.__lvSetEta("Frete Grátis");})();</script><script src="/checkout/js/resta
       if(missing){e.preventDefault();e.stopImmediatePropagation();alert('Preencha o endereço para a entrega dos itens adicionais.');return;}
     }
   },true);
+  document.addEventListener('click',function(e){if(e.target.closest('#lv-bumps'))setTimeout(paint,50);});
   var mo=new MutationObserver(function(){paint();});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){paint();mo.observe(document.body,{childList:true,subtree:true});});
   else{paint();mo.observe(document.body,{childList:true,subtree:true});}

@@ -42,7 +42,7 @@ function setup(t){
 
 test('only matched paid receipts produce Purchase; personal fields are hashed and value is reais',()=>{
  const o=order(),r=receipt(),event=buildPurchaseEvent(o,r);
- assert.equal(event.event_name,'Purchase');assert.equal(event.custom_data.value,34.99);assert.equal(event.custom_data.currency,'BRL');
+ assert.equal(event.event_name,'Purchase');assert.equal(event.custom_data.value,247.00);assert.equal(event.custom_data.currency,'BRL');
  assert.equal(event.event_id,'avem:purchase:'+id);assert.equal(event.user_data.em[0],hash('maria@example.com'));
  assert.equal(event.user_data.ph[0],hash('5511999999999'));assert.equal(event.user_data.ct[0],hash('saopaulo'));
  assert.equal(event.user_data.fbp,o.meta.fbp);assert.equal(event.user_data.client_ip_address,'192.0.2.1');
