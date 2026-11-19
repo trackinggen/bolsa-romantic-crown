@@ -7,7 +7,7 @@ const transaction='test_transaction_123';
 const body=()=>({
  requestId:'1234567890abcdef1234567890abcdef',amount:247.00,
  client:{name:'Teste Local',email:'teste@example.com',document:'12345678909',phone:'11999999999'},
- products:[{name:'GRAND_THEFT_AUTO_VI',quantity:1,variant:'Fisica'}],
+ products:[{name:'GRAND_THEFT_AUTO_VI',quantity:1,variant:'Fisica',platform:'PS5'}],
  shippingMethod:'PAC - FRETE GRÁTIS',bumpIds:[],
  shipping:{cep:'01001000',logradouro:'Rua de teste',numero:'1',bairro:'Centro',cidade:'Teste',uf:'SP'},
  utm:{source:'FB',campaign:'test-campaign'}
@@ -70,6 +70,7 @@ test('server computes real basket and rejects changed totals, unknown offers and
   b=>b.amount=0.70,
   b=>b.products[0].name='Sacola para Presentes',
   b=>b.products[0].variant='Outro',
+  b=>b.products[0].platform='Nintendo',
   b=>b.products[0].quantity=-1,
   b=>b.bumpIds=['unknown'],
   b=>b.bumpIds=['camiseta-gta-vi','camiseta-gta-vi'],
@@ -80,13 +81,18 @@ test('server computes real basket and rejects changed totals, unknown offers and
  }
 });
 
+test('Xbox platform is retained in the order product',()=>{ const xbox=body();xbox.products[0].platform='XBOX';const parsed=parseOrder(xbox);assert.equal(parsed.products[0].name,'Grand Theft Auto VI para XBOX - Fisica');assert.equal(parsed.products[0].platform,'XBOX'); });
+
 test('digital format uses only Envio imediato and does not require a delivery address',()=>{
  const digital=body();digital.products[0].variant='Digital';digital.shippingMethod='Envio imediato';digital.shipping={};digital.amount=247.00;
  const parsed=parseOrder(digital);assert.equal(parsed.amountInCents,24700);assert.equal(parsed.shipping.method,'Envio imediato');assert.equal(parsed.shipping.cep,'');
  assert.throws(()=>parseOrder({...digital,shippingMethod:'JADLOG'}));
 });
 test('digital order with physical add-ons requires a delivery address',()=>{
- const digital=body();digital.products[0].variant='Digital';digital.shippingMethod='Envio imediato';digital.bumpIds=['camiseta-gta-vi'];digital.shipping={};digital.amount=266.90;
+ const digital=body();digital.products[0].variant='Digital';digital.shippingMethod='Envio imediato';digital.bumpIds=['gta-plus-mes-1'];digital.shipping={};digital.amount=276.90;
+ const digitalParsed=parseOrder(digital);assert.equal(digitalParsed.amountInCents,27690);assert.equal(digitalParsed.products[1].name,'1º mês de GTA+');
+ const digitalTwo={...digital,bumpIds:['gta-plus-mes-1','pacote-vintage-vice-city'],amount:346.80};assert.equal(parseOrder(digitalTwo).amountInCents,34680);
+ assert.throws(()=>parseOrder({...digital,bumpIds:['camiseta-gta-vi'],amount:266.90}));
  assert.throws(()=>parseOrder(digital));
 });
 
