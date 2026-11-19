@@ -10,7 +10,7 @@ const event=body=>({secret:'test-secret',headers:{'x-webhook-secret':'test-secre
 
 test('v1 request uses reais, telefone, callback and normalizes the response',async()=>{
  const result=await createAvemPix(input(),async(url,options)=>{
-  assert.equal(url,'https://api.avempay.com.br/v1/gateway/');
+  assert.equal(url,'https://api.avempay.com/v1/gateway/');
   assert.equal(options.method,'POST');
   const body=JSON.parse(options.body);
   assert.equal(body.amount,34.99);
