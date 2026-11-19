@@ -1111,6 +1111,8 @@ window.__lvSetEta("Frete Grátis");})();</script><script src="/checkout/js/resta
   function getShippingCard(){var img=document.querySelector('#lv-step-2 img[alt="PAC"]');return img?img.closest('.rounded-xl.border'):null;}
   function paint(){
     var step=document.querySelector('#lv-step-2 main');if(!step)return;
+    var currentTitle='Grand Theft Auto VI para '+(platform==='XBOX'?'Xbox':'PS5');
+    document.querySelectorAll('p,span,h3,div').forEach(function(el){if(el.children.length)return;if(/^Grand Theft Auto VI para (?:PS5|Xbox)(?:\\s*-\\s*(?:Fisica|Digital))?$/i.test((el.textContent||'').trim()))el.textContent=currentTitle;});
     var card=getShippingCard();
     if(!document.getElementById('gta-format-picker')){
       var box=document.createElement('section');box.id='gta-format-picker';box.className='bg-white rounded-2xl shadow-sm p-4';
