@@ -663,7 +663,7 @@
     var s=window.__lvPedido||{};
     var format=(new URLSearchParams(location.search).get('formato')||localStorage.getItem('gtaViFormat')||'fisica').toLowerCase()==='digital'?'Digital':'Fisica';
     var qtyEl=document.querySelector('.border-neutral-200 > span');
-    var qty=qtyEl&&/^\\d+$/.test((qtyEl.innerText||'').trim())?parseInt(qtyEl.innerText,10):Number(s.qty)||1;
+    var qty=qtyEl&&/^\d+$/.test((qtyEl.innerText||'').trim())?parseInt(qtyEl.innerText,10):Number(s.qty)||1;
     var bumps=Array.prototype.slice.call(document.querySelectorAll('#lv-bumps .lv-bump.on')).map(function(card){return card.dataset.id;});
     var chosen=null;
     document.querySelectorAll('#lv-step-2 button').forEach(function(button){
